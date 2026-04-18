@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science Fair Booth System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--y:#FFE000;--g:#22A050;--g2:#2ECC6A;--dk:#0D1F15;--dk2:#162B1E;--dk3:#1E3828;--rd:#ff6b6b;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--dk);color:#fff;min-height:100vh}
+input,select,textarea,button{font-family:inherit}
+.hidden{display:none!important}
+
+/* SPINNER */
+#spin{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:none;align-items:center;justify-content:center}
+#spin.on{display:flex}
+.ring{width:44px;height:44px;border:3px solid rgba(255,224,0,.2);border-top-color:var(--y);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+#toasts{position:fixed;top:70px;right:16px;z-index:9998;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--dk2);border-left:4px solid var(--g);padding:12px 16px;border-radius:10px;font-size:.875rem;max-width:320px;animation:slideIn .3s ease;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.err{border-left-color:var(--rd)}
+.toast.warn{border-left-color:var(--y)}
+@keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+
+/* CONFIRM */
+#confirm{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9997;display:none;align-items:center;justify-content:center;padding:16px}
+#confirm.on{display:flex}
+.cbox{background:var(--dk2);border:1px solid rgba(255,224,0,.3);border-radius:18px;padding:28px;max-width:380px;width:100%}
+.cbox h3{font-family:Syne;font-size:1.1rem;margin-bottom:8px}
+.cbox p{color:rgba(255,255,255,.55);font-size:.875rem;margin-bottom:20px;line-height:1.6}
+.cbox-btns{display:flex;gap:10px;justify-content:flex-end}
+
+/* CHANGE PW MODAL */
+#pwmodal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9996;display:none;align-items:center;justify-content:center;padding:16px}
+#pwmodal.on{display:flex}
+.pwbox{background:var(--dk2);border:1px solid var(--y);border-radius:18px;padding:32px;max-width:360px;width:100%}
+.pwbox h2{font-family:Syne;color:var(--y);font-size:1.2rem;margin-bottom:6px}
+.pwbox p{color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:20px}
+
+/* LOGIN */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.lbox{background:var(--dk2);border:1px solid rgba(255,224,0,.2);border-radius:22px;padding:40px;width:100%;max-width:400px;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.logo{text-align:center;margin-bottom:32px}
+.logo h1{font-family:Syne;font-size:1.6rem;font-weight:800}
+.logo h1 span{color:var(--y)}
+.logo p{color:rgba(255,255,255,.4);font-size:.82rem;margin-top:4px}
+.atom{width:56px;height:56px;border:2.5px solid var(--y);border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;animation:spin 8s linear infinite;position:relative}
+.atom::before,.atom::after{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--g);transform:rotate(60deg)}
+.atom::after{transform:rotate(-60deg);border-color:rgba(255,224,0,.4)}
+.dot{width:8px;height:8px;background:var(--y);border-radius:50%;box-shadow:0 0 10px var(--y)}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:.75rem;font-weight:500;color:var(--g2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.inp{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;color:#fff;font-size:.9rem;outline:none;transition:.2s}
+.inp:focus{border-color:var(--y);box-shadow:0 0 0 3px rgba(255,224,0,.1)}
+.inp option{background:var(--dk2)}
+.lerr{background:rgba(220,53,69,.15);border:1px solid rgba(220,53,69,.3);color:var(--rd);border-radius:10px;padding:10px 14px;font-size:.83rem;margin-top:10px;display:none}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:10px;padding:10px 18px;font-size:.875rem;font-weight:500;cursor:pointer;transition:.2s;text-decoration:none}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-y{background:var(--y);color:var(--dk);font-weight:700}
+.btn-y:hover{background:#FFD000;transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,224,0,.25)}
+.btn-g{background:var(--g);color:#fff;font-weight:600}
+.btn-g:hover{background:#1a7a3c;transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7)}
+.btn-ghost:hover{border-color:var(--y);color:var(--y)}
+.btn-danger{background:rgba(220,53,69,.15);border:1px solid rgba(220,53,69,.3);color:var(--rd)}
+.btn-danger:hover{background:rgba(220,53,69,.25)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-block{width:100%;justify-content:center}
+
+/* NAV */
+#nav{background:var(--dk2);border-bottom:1px solid rgba(255,224,0,.12);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:100}
+.nav-logo{font-family:Syne;font-weight:800;font-size:1rem;display:flex;align-items:center;gap:8px}
+.nav-logo span{color:var(--y)}
+.navdot{width:7px;height:7px;background:var(--g2);border-radius:50%;box-shadow:0 0 7px var(--g2);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-r{display:flex;align-items:center;gap:10px}
+.chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:4px 12px 4px 4px}
+.av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--y),var(--g));display:flex;align-items:center;justify-content:center;font-family:Syne;font-size:.68rem;font-weight:700;color:var(--dk)}
+.chip-name{font-size:.8rem;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbadge{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase}
+.rb-learner{background:rgba(46,204,106,.2);color:var(--g2)}
+.rb-admin{background:rgba(255,224,0,.2);color:var(--y)}
+.rb-teacher{background:rgba(136,170,255,.2);color:#88AAFF}
+.rb-booth{background:rgba(255,120,50,.2);color:#FF9060}
+.logout-btn{background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);border-radius:8px;padding:5px 12px;font-size:.78rem;cursor:pointer;transition:.2s}
+.logout-btn:hover{border-color:var(--rd);color:var(--rd)}
+
+/* NOTIFICATION BELL */
+.bell-wrap{position:relative}
+.bell-btn{background:transparent;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.55);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.95rem;transition:.2s}
+.bell-btn:hover{border-color:var(--y);color:var(--y)}
+.bell-badge{position:absolute;top:-3px;right:-3px;background:var(--y);color:var(--dk);font-family:Syne;font-size:.58rem;font-weight:800;width:15px;height:15px;border-radius:50%;display:none;align-items:center;justify-content:center}
+.bell-badge.on{display:flex}
+.notif-dd{position:absolute;top:42px;right:0;width:300px;max-height:360px;overflow-y:auto;background:var(--dk2);border:1px solid rgba(255,224,0,.2);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.5);display:none;z-index:200}
+.notif-dd.on{display:block}
+.ndd-hdr{padding:12px 14px 8px;font-family:Syne;font-size:.78rem;font-weight:700;color:var(--y);border-bottom:1px solid rgba(255,255,255,.06)}
+.ndd-item{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem;color:rgba(255,255,255,.75);line-height:1.5}
+.ndd-item:last-child{border:none}
+.ndd-time{font-size:.7rem;color:rgba(255,255,255,.3);margin-top:2px}
+.ndd-empty{padding:20px;text-align:center;color:rgba(255,255,255,.25);font-size:.83rem}
+
+/* ANN BANNER */
+#ann{background:linear-gradient(90deg,var(--dk3),var(--dk2));border-bottom:2px solid var(--y);padding:9px 20px;display:none;align-items:center;gap:10px;font-size:.875rem}
+#ann.on{display:flex}
+#ann-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:1rem;margin-left:auto;transition:.2s}
+#ann-close:hover{color:#fff}
+
+/* MAIN CONTENT */
+#app{display:none}
+#app.on{display:block}
+.wrap{max-width:940px;margin:0 auto;padding:20px}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:3px;margin-bottom:22px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:max-content;background:none;border:none;color:rgba(255,255,255,.4);font-size:.8rem;font-weight:500;padding:8px 13px;border-radius:9px;cursor:pointer;transition:.2s;white-space:nowrap}
+.tab:hover{color:rgba(255,255,255,.75)}
+.tab.on{background:var(--y);color:var(--dk);font-weight:700}
+.panel{display:none}
+.panel.on{display:block;animation:fadeUp .25s ease}
+
+/* CARDS */
+.card{background:var(--dk2);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 22px;margin-bottom:14px}
+.card-y{border-color:rgba(255,224,0,.25);background:linear-gradient(135deg,var(--dk2),rgba(255,224,0,.03))}
+.card-g{border-color:rgba(34,160,80,.25);background:linear-gradient(135deg,var(--dk2),rgba(34,160,80,.03))}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:18px}
+.stat{background:var(--dk2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px}
+.stat-label{font-size:.72rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.stat-val{font-family:Syne;font-size:2.2rem;font-weight:800;color:var(--y);line-height:1}
+.stat-sub{font-size:.75rem;color:rgba(255,255,255,.3);margin-top:3px}
+
+/* GREET */
+.greet{background:linear-gradient(135deg,var(--dk3),var(--dk2));border:1px solid rgba(255,224,0,.18);border-left:4px solid var(--y);border-radius:14px;padding:22px 24px;margin-bottom:20px}
+.greet h2{font-family:Syne;font-size:1.4rem;font-weight:800;margin-bottom:3px}
+.greet h2 span{color:var(--y)}
+.greet p{color:rgba(255,255,255,.45);font-size:.85rem}
+.gtag{display:inline-block;background:rgba(46,204,106,.12);border:1px solid rgba(46,204,106,.25);color:var(--g2);border-radius:99px;padding:3px 11px;font-size:.75rem;font-weight:500;margin-top:8px}
+
+/* SECTION TITLE */
+.stitle{font-family:Syne;font-size:1rem;font-weight:700;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.stitle::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
+.sicon{width:26px;height:26px;background:var(--y);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--dk)}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.74rem;font-weight:500;color:var(--g2);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px}
+.g2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.g2col{grid-template-columns:1fr}}
+
+/* ACTIVITY */
+.acts{display:flex;flex-direction:column;gap:7px}
+.act{display:flex;align-items:flex-start;gap:11px;padding:11px 13px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:10px}
+.act:hover{border-color:rgba(255,224,0,.12)}
+.adot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.adot-play{background:var(--y);box-shadow:0 0 7px rgba(255,224,0,.5)}
+.adot-send{background:var(--g2);box-shadow:0 0 7px rgba(46,204,106,.5)}
+.adot-dep{background:#88AAFF;box-shadow:0 0 7px rgba(136,170,255,.5)}
+.adot-ref{background:var(--rd);box-shadow:0 0 7px rgba(255,107,107,.5)}
+.act-txt{flex:1;font-size:.85rem;color:rgba(255,255,255,.8)}
+.act-sub{font-size:.73rem;color:rgba(255,255,255,.3);margin-top:2px}
+.act-tk{font-family:Syne;font-size:.88rem;font-weight:700;color:var(--y);flex-shrink:0}
+
+/* BOOTH GRID */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px;margin-bottom:18px}
+.bcrd{background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.07);border-radius:14px;padding:18px 14px;cursor:pointer;text-align:center;transition:.2s}
+.bcrd:hover{border-color:var(--y);transform:translateY(-3px);box-shadow:0 8px 24px rgba(255,224,0,.12)}
+.bcrd.sel{border-color:var(--g);background:rgba(34,160,80,.07)}
+.bico{width:40px;height:40px;background:linear-gradient(135deg,var(--y),var(--g));border-radius:11px;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.bname{font-family:Syne;font-size:.82rem;font-weight:700;color:#fff}
+
+/* TICKET PICKER */
+.tpick{background:rgba(255,224,0,.05);border:1px solid rgba(255,224,0,.2);border-radius:14px;padding:18px;margin-bottom:14px}
+.tpick h4{font-family:Syne;color:var(--y);font-size:.85rem;margin-bottom:12px}
+.trow{display:flex;align-items:center;gap:11px}
+.tcnt{width:34px;height:34px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+.tcnt:hover{background:var(--y);color:var(--dk);border-color:var(--y)}
+.tnum{font-family:Syne;font-size:1.8rem;font-weight:800;min-width:44px;text-align:center}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,.06)}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{text-align:left;padding:9px 13px;font-size:.7rem;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.02)}
+td{padding:10px 13px;font-size:.83rem;color:rgba(255,255,255,.75);border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+.refunded-row td{opacity:.35;text-decoration:line-through}
+.refunded-row td:last-child{text-decoration:none}
+.typebadge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.68rem;font-weight:700;text-transform:uppercase}
+.type-play{background:rgba(255,224,0,.15);color:var(--y)}
+.type-send{background:rgba(46,204,106,.15);color:var(--g2)}
+.type-deploy{background:rgba(136,170,255,.15);color:#88AAFF}
+.type-refund{background:rgba(255,107,107,.15);color:var(--rd)}
+
+/* BOOTH POINTS */
+.bpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:11px}
+.bpcrd{background:var(--dk2);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;transition:.2s}
+.bpcrd:hover{border-color:rgba(255,224,0,.2)}
+.bpname{font-family:Syne;font-weight:700;font-size:.92rem;margin-bottom:2px}
+.bpalias{font-size:.72rem;color:rgba(255,255,255,.3);margin-bottom:10px}
+.bpdays{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
+.bpday{background:rgba(255,255,255,.04);border-radius:7px;padding:6px;text-align:center}
+.bpday span{display:block;font-size:.62rem;color:rgba(255,255,255,.3)}
+.bpday strong{font-family:Syne;font-size:.88rem}
+.bptot{display:flex;align-items:center;justify-content:space-between}
+.bptotnum{font-family:Syne;font-size:1.35rem;font-weight:800;color:var(--y)}
+.bpacts{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+
+/* DATA CARDS */
+.dcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;margin-bottom:18px}
+.dc{background:var(--dk2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 18px}
+.dc-lbl{font-size:.72rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.dc-val{font-family:Syne;font-size:1.5rem;font-weight:800;color:var(--y)}
+.dc-sub{font-size:.75rem;color:rgba(255,255,255,.3);margin-top:3px}
+
+/* FAQ */
+.faq-list{display:flex;flex-direction:column;gap:7px}
+.faq-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;cursor:pointer;transition:.2s}
+.faq-item:hover,.faq-item.on{border-color:rgba(255,224,0,.25)}
+.faq-q{padding:13px 15px;display:flex;align-items:center;justify-content:space-between;font-size:.88rem;font-weight:500}
+.faq-arr{font-size:.72rem;color:var(--y);transition:.2s}
+.faq-item.on .faq-arr{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;font-size:.85rem;color:rgba(255,255,255,.55);line-height:1.7}
+.faq-item.on .faq-a{max-height:300px;padding:0 15px 13px}
+
+/* CREDITS */
+.cr-sec{margin-bottom:24px}
+.cr-sec h3{font-family:Syne;font-size:.72rem;font-weight:700;color:var(--y);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:9px}
+.cr-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;transition:.2s}
+.cr-card:hover{border-color:rgba(255,224,0,.18)}
+.cr-name{font-weight:500;font-size:.85rem}
+.cr-role{font-size:.72rem;color:rgba(255,255,255,.35);margin-top:2px}
+
+/* LEADERBOARD */
+.lbList{display:flex;flex-direction:column;gap:9px}
+.lbi{display:flex;align-items:center;gap:13px;padding:14px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:13px;transition:.2s}
+.lbi:hover{border-color:rgba(255,224,0,.18)}
+.lbi.r1{border-color:rgba(255,224,0,.35);background:rgba(255,224,0,.05)}
+.lbi.r2{border-color:rgba(192,192,192,.25)}
+.lbi.r3{border-color:rgba(205,127,50,.25)}
+.lbrank{font-family:Syne;font-size:1.15rem;font-weight:800;min-width:30px;text-align:center}
+.r1 .lbrank{color:var(--y)}
+.r2 .lbrank{color:#C0C0C0}
+.r3 .lbrank{color:#CD7F32}
+.lbname{flex:1;font-weight:500;font-size:.88rem}
+.lbdays{display:flex;gap:7px}
+.lbd{text-align:center}
+.lbd span{display:block;font-size:.62rem;color:rgba(255,255,255,.3)}
+.lbd strong{font-family:Syne;font-size:.78rem;color:rgba(255,255,255,.65)}
+.lbtot{font-family:Syne;font-size:1.05rem;font-weight:800;color:var(--y)}
+
+/* DAY TABS */
+.dtabs{display:flex;gap:6px;margin-bottom:14px}
+.dtab{padding:6px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:99px;color:rgba(255,255,255,.45);font-size:.78rem;cursor:pointer;transition:.2s}
+.dtab.on{background:var(--y);color:var(--dk);border-color:var(--y);font-weight:700}
+
+/* CONCLUDE CARD */
+.concard{background:linear-gradient(135deg,var(--dk3),var(--dk2));border:2px solid rgba(255,224,0,.28);border-radius:14px;padding:24px;text-align:center;margin-bottom:18px}
+.concard h3{font-family:Syne;font-size:1.2rem;margin-bottom:7px}
+.concard p{color:rgba(255,255,255,.45);font-size:.85rem;margin-bottom:18px}
+.daybadge{display:inline-block;background:var(--y);color:var(--dk);font-family:Syne;font-size:1rem;font-weight:800;padding:5px 18px;border-radius:99px;margin-bottom:16px}
+
+/* SEARCH */
+.sbar{display:flex;gap:9px;margin-bottom:14px}
+.sbar input{flex:1}
+.frow{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.frow select{flex:1;min-width:130px}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:rgba(255,255,255,.25)}
+.empty .ei{font-size:2.2rem;margin-bottom:10px;opacity:.5}
+
+/* UTILS */
+.muted{color:rgba(255,255,255,.35);font-size:.8rem}
+.ty{color:var(--y)}
+.tg{color:var(--g2)}
+.tr{color:var(--rd)}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb14{margin-bottom:14px}
+.flex{display:flex}.fbet{display:flex;align-items:center;justify-content:space-between}
+@media(max-width:580px){.lbdays{display:none}.wrap{padding:14px}}
+</style>
+</head>
+<body>
+
+<div id="spin"><div class="ring"></div></div>
+<div id="toasts"></div>
+<div id="confirm" onclick="if(event.target===this)closeConfirm()">
+  <div class="cbox">
+    <h3 id="conf-title"></h3>
+    <p id="conf-msg"></p>
+    <div class="cbox-btns">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-y" id="conf-ok" onclick="doConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="pwmodal">
+  <div class="pwbox">
+    <h2>Set Your Password</h2>
+    <p>First login — please set a new password (min. 6 characters).</p>
+    <div class="fg"><label>New Password</label><input type="password" class="inp" id="pw1" placeholder="New password"></div>
+    <div class="fg"><label>Confirm Password</label><input type="password" class="inp" id="pw2" placeholder="Confirm password"></div>
+    <button class="btn btn-y btn-block mt12" id="submit-pw-btn">Save Password</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="lbox">
+    <div class="logo">
+      <div class="atom"><div class="dot"></div></div>
+      <h1>Science<span>Fair</span></h1>
+      <p>Booth Ticketing System · Sep 3–6</p>
+    </div>
+    <div class="fld"><label>Username</label><input type="text" class="inp" id="lu" placeholder="Enter username" autocomplete="username"></div>
+    <div class="fld"><label>Password</label><input type="password" class="inp" id="lp" placeholder="Enter password" autocomplete="current-password"></div>
+    <button class="btn btn-y btn-block" style="margin-top:6px" id="login-btn">Sign In →</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <nav id="nav">
+    <div class="nav-logo"><div class="navdot"></div>Science<span>Fair</span></div>
+    <div class="nav-r" style="position:relative">
+      <div class="bell-wrap">
+        <button class="bell-btn" onclick="toggleNotif()">🔔<span class="bell-badge" id="bell-badge">0</span></button>
+        <div class="notif-dd" id="notif-dd">
+          <div class="ndd-hdr">Notifications</div>
+          <div id="notif-list"><div class="ndd-empty">No notifications yet</div></div>
+        </div>
+      </div>
+      <div class="chip">
+        <div class="av" id="nav-av">?</div>
+        <span class="chip-name" id="nav-name">User</span>
+        <span class="rbadge" id="nav-rbadge">—</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+  <div id="ann"><span>📢</span><span id="ann-txt" style="flex:1"></span><button id="ann-close" onclick="dismissAnn()">✕</button></div>
+  <div class="wrap"><div id="role-ui"></div></div>
+</div>
+
+<script>
+// ══════════════════════════════
+//  CONFIG — UPDATE THIS URL
+// ══════════════════════════════
+const API = 'https://script.google.com/macros/s/AKfycby8oLbOq8-5qSzIAwK9dHcxmFvXzKPG_o_pVoofc0splyDatH42eaGeiz1HTo2T1rJ8ZQ/exec';
+
+// ══════════════════════════════
+//  STATE
+// ══════════════════════════════
+let SES = null;
+let pollTimer = null;
+let confirmFn = null;
+let notifLog = [];
+let dismissedAnn = null;
+let cbN = 0;
+
+// ══════════════════════════════
+//  JSONP API — confirmed working
+// ══════════════════════════════
+function api(action, params, silent) {
+  params = params || {};
+  silent = silent || false;
+  if (!silent) spin(true);
+  return new Promise(function(resolve, reject) {
+    var name = '_cb' + (++cbN);
+    var payload = { action: action, params: params };
+    if (SES && SES.token) payload.token = SES.token;
+    var url = API + '?callback=' + name + '&data=' + encodeURIComponent(JSON.stringify(payload));
+    var done = false;
+
+    var t = setTimeout(function() {
+      if (done) return; done = true;
+      cleanup(); if (!silent) spin(false);
+      reject(new Error('Timeout — check connection'));
+    }, 30000);
+
+    window[name] = function(r) {
+      if (done) return; done = true;
+      cleanup(); if (!silent) spin(false);
+      if (r && r.success) resolve(r.data);
+      else reject(new Error((r && r.error) || 'Server error'));
+    };
+
+    function cleanup() {
+      clearTimeout(t); delete window[name];
+      var el = document.getElementById(name);
+      if (el) el.parentNode.removeChild(el);
+    }
+
+    var s = document.createElement('script');
+    s.id = name; s.src = url;
+    s.onerror = function() {
+      if (done) return; done = true;
+      cleanup(); if (!silent) spin(false);
+      reject(new Error('Script error — check Apps Script URL'));
+    };
+    document.head.appendChild(s);
+  });
+}
+
+// ══════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════
+function spin(on) { document.getElementById('spin').className = on ? 'on' : ''; }
+
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast' + (type === 'err' ? ' err' : type === 'warn' ? ' warn' : '');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 4000);
+}
+
+var confirmResolve = null;
+function confirm2(title, msg, dangerBtn) {
+  document.getElementById('conf-title').textContent = title;
+  document.getElementById('conf-msg').textContent = msg;
+  var ok = document.getElementById('conf-ok');
+  ok.className = 'btn ' + (dangerBtn ? 'btn-danger' : 'btn-y');
+  ok.textContent = dangerBtn || 'Confirm';
+  document.getElementById('confirm').className = 'on';
+  return new Promise(function(res) { confirmResolve = res; });
+}
+function doConfirm() { document.getElementById('confirm').className = ''; if (confirmResolve) { confirmResolve(true); confirmResolve = null; } }
+function closeConfirm() { document.getElementById('confirm').className = ''; if (confirmResolve) { confirmResolve(false); confirmResolve = null; } }
+
+function esc(s){var m={'&':'&amp;','<':'&lt;','>':'&gt;'};return String(s||'').replace(/[&<>]/g,function(c){return m[c];}).replace(/"/g,'&quot;');}
+function fmtT(iso) {
+  if (!iso) return '—';
+  try { var d = new Date(iso); return d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}); }
+  catch(e) { return String(iso).slice(0,16); }
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('on'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('on'); });
+  var btn = document.querySelector('[data-tab="'+id+'"]');
+  var pan = document.getElementById(id);
+  if (btn) btn.classList.add('on');
+  if (pan) pan.classList.add('on');
+}
+
+// ══════════════════════════════
+//  NOTIFICATIONS
+// ══════════════════════════════
+function toggleNotif() {
+  var dd = document.getElementById('notif-dd');
+  dd.classList.toggle('on');
+  if (dd.classList.contains('on')) {
+    document.getElementById('bell-badge').classList.remove('on');
+    renderNotifs();
+  }
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.bell-wrap')) document.getElementById('notif-dd').classList.remove('on');
+});
+function renderNotifs() {
+  var el = document.getElementById('notif-list');
+  if (!notifLog.length) { el.innerHTML = '<div class="ndd-empty">No notifications yet</div>'; return; }
+  el.innerHTML = notifLog.slice(0,12).map(function(n) {
+    return '<div class="ndd-item">'+esc(n.message)+'<div class="ndd-time">'+fmtT(n.created_at)+'</div></div>';
+  }).join('');
+}
+function dismissAnn() {
+  dismissedAnn = document.getElementById('ann-txt').textContent;
+  document.getElementById('ann').classList.remove('on');
+}
+
+// ══════════════════════════════
+//  POLLING
+// ══════════════════════════════
+async function poll() {
+  try {
+    var notifs = await api('pollNotifications', {}, true);
+    if (notifs && notifs.length) {
+      notifs.forEach(function(n) { notifLog.unshift(n); toast('🔔 ' + n.message); });
+      document.getElementById('bell-badge').textContent = notifLog.length > 9 ? '9+' : notifLog.length;
+      document.getElementById('bell-badge').classList.add('on');
+    }
+    var ann = await api('getAnnouncement', {}, true);
+    var annEl = document.getElementById('ann');
+    if (ann && ann.message !== dismissedAnn) {
+      document.getElementById('ann-txt').textContent = ann.message;
+      annEl.classList.add('on');
+    } else if (!ann) {
+      annEl.classList.remove('on');
+    }
+  } catch(e) {}
+}
+
+// ══════════════════════════════
+//  AUTH
+// ══════════════════════════════
+document.getElementById('lp').addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('submit-pw-btn').addEventListener('click', submitPw);
+
+async function doLogin() {
+  var u = document.getElementById('lu').value.trim();
+  var p = document.getElementById('lp').value;
+  var err = document.getElementById('lerr');
+  err.style.display = 'none';
+  if (!u || !p) { err.textContent = 'Enter username and password.'; err.style.display = 'block'; return; }
+  try {
+    var data = await api('login', { username: u, password: p });
+    SES = data;
+    localStorage.setItem('sf_ses', JSON.stringify(data));
+    if (data.must_change_pw) {
+      document.getElementById('pwmodal').classList.add('on');
+    } else {
+      enterApp();
+    }
+  } catch(e) { err.textContent = e.message; err.style.display = 'block'; }
+}
+
+async function submitPw() {
+  var p1 = document.getElementById('pw1').value;
+  var p2 = document.getElementById('pw2').value;
+  if (!p1 || p1.length < 6) { toast('Min 6 characters', 'warn'); return; }
+  if (p1 !== p2) { toast('Passwords do not match', 'warn'); return; }
+  try {
+    await api('changePassword', { newPassword: p1 });
+    document.getElementById('pwmodal').classList.remove('on');
+    toast('Password saved!'); enterApp();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function doLogout() {
+  try { await api('logout', {}, true); } catch(e) {}
+  localStorage.removeItem('sf_ses');
+  SES = null; clearInterval(pollTimer);
+  notifLog = []; dismissedAnn = null;
+  document.getElementById('notif-list').innerHTML = '<div class="ndd-empty">No notifications yet</div>';
+  document.getElementById('bell-badge').classList.remove('on');
+  document.getElementById('ann').classList.remove('on');
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('lu').value = '';
+  document.getElementById('lp').value = '';
+}
+
+function enterApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').classList.add('on');
+  var ini = (SES.full_name||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+  document.getElementById('nav-av').textContent = ini;
+  document.getElementById('nav-name').textContent = SES.full_name;
+  var rb = document.getElementById('nav-rbadge');
+  rb.textContent = SES.role.charAt(0).toUpperCase() + SES.role.slice(1);
+  rb.className = 'rbadge rb-' + SES.role;
+  var ui = document.getElementById('role-ui');
+  if (SES.role === 'learner') ui.innerHTML = buildLearner();
+  else if (SES.role === 'admin') ui.innerHTML = buildAdmin();
+  else if (SES.role === 'teacher') ui.innerHTML = buildTeacher();
+  else if (SES.role === 'booth') ui.innerHTML = buildBooth();
+  switchTab(SES.role + '0');
+  loadInitial();
+  pollTimer = setInterval(poll, 5000);
+  poll();
+}
+
+// ══════════════════════════════
+//  BUILD UIs
+// ══════════════════════════════
+function mkTabs(names, role) {
+  return '<div class="tabs">' + names.map(function(n,i){return '<button class="tab" data-tab="'+role+i+'" onclick="switchTab(\''+role+i+'\')">'+n+'</button>';}).join('') + '</div>' +
+    names.map(function(_,i){return '<div class="panel" id="'+role+i+'"></div>';}).join('');
+}
+
+function buildLearner() { return mkTabs(['Dashboard','Play Booth','Send Ticket','My Points','FAQs','Credits'],'learner'); }
+function buildAdmin()   { return mkTabs(['Deploy','Disbursement','Transactions','Accounts','Booth Points','Register Booth','Announcements','FAQs','Credits','Audit Log'],'admin'); }
+function buildTeacher() { return mkTabs(['Student Points','FAQs','Credits'],'teacher'); }
+function buildBooth()   { return mkTabs(['Dashboard','Leaderboard','FAQs','Credits'],'booth'); }
+
+// ══════════════════════════════
+//  LOAD INITIAL DATA
+// ══════════════════════════════
+async function loadInitial() {
+  var r = SES.role;
+  if (r === 'learner') { await loadLearnerDash(); }
+  else if (r === 'admin') { await loadAdminDeploy(); }
+  else if (r === 'teacher') { await loadTeacherPanel(); }
+  else if (r === 'booth') { await loadBoothDash(); }
+  loadFAQs(); loadCredits();
+}
+
+// ══════════════════════════════
+//  LEARNER
+// ══════════════════════════════
+async function loadLearnerDash() {
+  try {
+    var d = await api('getDashboard');
+    SES.ticket_balance = d.ticket_balance;
+    document.getElementById('learner0').innerHTML =
+      '<div class="greet"><h2>Hey, <span>'+esc(d.full_name.split(' ')[0])+'</span>! 👋</h2><p>Welcome to the Science Fair Booth System</p><span class="gtag">📚 '+esc(d.grade_section)+'</span></div>' +
+      '<div class="stat-grid">' +
+        '<div class="stat card-y"><div class="stat-label">Ticket Balance</div><div class="stat-val" id="bal-disp">'+d.ticket_balance+'</div><div class="stat-sub">Available tickets</div></div>' +
+        '<div class="stat"><div class="stat-label">Transactions</div><div class="stat-val" style="color:var(--g2)">'+d.activity_log.length+'</div><div class="stat-sub">Total activities</div></div>' +
+      '</div>' +
+      '<div class="stitle"><span class="sicon">📋</span>Recent Activity</div>' +
+      '<div class="acts">'+renderActs(d.activity_log, d.account_id)+'</div>';
+    await loadBoothsPanel();
+    await loadSendPanel();
+    await loadMyPoints();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function renderActs(log, myId) {
+  if (!log.length) return '<div class="empty"><div class="ei">📭</div><p>No activity yet</p></div>';
+  return log.map(function(t) {
+    var isFrom = String(t.from_account_id) === String(myId);
+    var dotCls = {play_booth:'adot-play',send_student:'adot-send',deploy:'adot-dep',refund:'adot-ref'}[t.txn_type] || 'adot-dep';
+    var label = {play_booth: isFrom?'Played at a booth':'Received play', send_student: isFrom?'Sent ticket to student':'Received ticket from student', deploy:'Received from Admin', refund:'Refund processed'}[t.txn_type] || t.txn_type;
+    var sign = (t.txn_type==='deploy'||(!isFrom&&t.txn_type==='send_student')||t.txn_type==='refund') ? '+' : '-';
+    var ref = (t.refunded===true||t.refunded==='TRUE');
+    return '<div class="act'+(ref?' refunded-row':'')+'"><div class="adot '+dotCls+'"></div><div class="act-txt">'+label+(ref?' (refunded)':'')+'<div class="act-sub">Day '+t.day+' · '+fmtT(t.timestamp)+'</div></div><div class="act-tk">'+sign+t.tickets+'</div></div>';
+  }).join('');
+}
+
+var selBoothId = null, selBoothName = null, playTk = 1, sendTk = 1;
+var boothsCache = [];
+
+async function loadBoothsPanel() {
+  try {
+    var bs = await api('getBooths', {}, true);
+    boothsCache = bs;
+    var ICONS = ['🔬','🧪','🌱','⚡','🎯','🧲','💡','🚀','🎨','🌊','🌡','🔭'];
+    document.getElementById('learner1').innerHTML =
+      '<div class="stitle"><span class="sicon">🎮</span>Choose a Booth</div>' +
+      '<div class="bgrid" id="bgrid">'+bs.map(function(b,i){return '<div class="bcrd" id="bc-'+b.booth_id+'" onclick="selBooth(\''+esc(b.booth_id)+'\',\''+esc(b.booth_name)+'\')"><div class="bico">'+ICONS[i%ICONS.length]+'</div><div class="bname">'+esc(b.booth_name)+'</div></div>';}).join('')+'</div>' +
+      '<div class="tpick hidden" id="play-pick"><h4>🎟 Playing at: <span id="sel-bn">—</span></h4><div class="trow"><button class="tcnt" onclick="adjPlay(-1)">−</button><div class="tnum" id="play-n">1</div><button class="tcnt" onclick="adjPlay(1)">+</button><span class="muted" style="margin-left:6px">tickets</span></div><div style="display:flex;gap:9px;margin-top:13px"><button class="btn btn-y" onclick="confPlay()">Send Tickets →</button><button class="btn btn-ghost" onclick="clearSel()">Cancel</button></div></div>' +
+      '<div class="muted mt8">Balance: <span class="ty" id="bal-play">'+SES.ticket_balance+'</span> tickets</div>';
+  } catch(e) {}
+}
+
+function selBooth(id, name) {
+  selBoothId = id; selBoothName = name;
+  document.querySelectorAll('.bcrd').forEach(function(c){c.classList.remove('sel');});
+  document.getElementById('bc-'+id).classList.add('sel');
+  document.getElementById('sel-bn').textContent = name;
+  document.getElementById('play-pick').classList.remove('hidden');
+  playTk = 1; document.getElementById('play-n').textContent = 1;
+}
+function clearSel() {
+  selBoothId = null;
+  document.querySelectorAll('.bcrd').forEach(function(c){c.classList.remove('sel');});
+  document.getElementById('play-pick').classList.add('hidden');
+}
+function adjPlay(d) { playTk = Math.max(1, playTk+d); document.getElementById('play-n').textContent = playTk; }
+function adjSend(d) { sendTk = Math.max(1, sendTk+d); document.getElementById('send-n').textContent = sendTk; }
+
+async function confPlay() {
+  if (!selBoothId) { toast('Select a booth first','warn'); return; }
+  var ok = await confirm2('Confirm Play', 'Send '+playTk+' ticket'+(playTk>1?'s':'')+' to "'+selBoothName+'"?');
+  if (!ok) return;
+  try {
+    var r = await api('playBooth', { boothId: selBoothId, tickets: playTk });
+    SES.ticket_balance = r.new_balance;
+    updateBal(r.new_balance);
+    toast('🎮 '+r.message);
+    clearSel();
+    await loadLearnerDash();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function loadSendPanel() {
+  try {
+    var secs = await api('getSectionList', {}, true);
+    document.getElementById('learner2').innerHTML =
+      '<div class="stitle"><span class="sicon">📨</span>Send a Ticket</div>' +
+      '<div class="card"><div class="fg"><label>Filter by Section</label><select class="inp" id="send-sec" onchange="loadSendStudents()"><option value="">All Sections</option>'+secs.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('')+'</select></div>' +
+      '<div class="fg"><label>Recipient</label><select class="inp" id="send-recip"><option value="">Select student...</option></select></div>' +
+      '<div class="fg"><label>Tickets</label><div class="trow"><button class="tcnt" onclick="adjSend(-1)">−</button><div class="tnum" id="send-n">1</div><button class="tcnt" onclick="adjSend(1)">+</button></div></div>' +
+      '<div class="muted mt8 mb14">Balance: <span class="ty">'+SES.ticket_balance+'</span> tickets</div>' +
+      '<button class="btn btn-y" onclick="confSend()">Send Tickets →</button></div>';
+    await loadSendStudents();
+  } catch(e) {}
+}
+
+async function loadSendStudents() {
+  var sec = document.getElementById('send-sec') ? document.getElementById('send-sec').value : '';
+  try {
+    var st = await api('getLearnerList', { section: sec }, true);
+    var sel = document.getElementById('send-recip');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select student...</option>' + st.map(function(s){return '<option value="'+esc(s.account_id)+'">'+esc(s.full_name)+' — '+esc(s.grade_section)+'</option>';}).join('');
+  } catch(e) {}
+}
+
+async function confSend() {
+  var toId = document.getElementById('send-recip').value;
+  var toName = document.getElementById('send-recip').selectedOptions[0] ? document.getElementById('send-recip').selectedOptions[0].text : '';
+  if (!toId) { toast('Select a recipient','warn'); return; }
+  var ok = await confirm2('Confirm Send', 'Send '+sendTk+' ticket'+(sendTk>1?'s':'')+' to '+toName+'?');
+  if (!ok) return;
+  try {
+    var r = await api('sendTicket', { toAccountId: toId, tickets: sendTk });
+    SES.ticket_balance = r.new_balance;
+    updateBal(r.new_balance);
+    toast('📨 '+r.message);
+    await loadLearnerDash();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function updateBal(n) {
+  ['bal-disp','bal-play'].forEach(function(id){ var el=document.getElementById(id); if(el)el.textContent=n; });
+}
+
+async function loadMyPoints() {
+  try {
+    var d = await api('getMyBoothPoints', {}, true);
+    document.getElementById('learner3').innerHTML =
+      '<div class="stitle"><span class="sicon">⭐</span>My Ticket Points</div>' +
+      '<div class="card"><div style="margin-bottom:14px"><div class="muted">Total Points Spent on Booths</div><div style="font-family:Syne;font-size:2.2rem;font-weight:800;color:var(--y)">'+d.total+'</div></div>' +
+      '<div class="tbl-wrap"><table><thead><tr><th>Booth</th><th>Tickets Played</th></tr></thead><tbody>' +
+      (d.per_booth.length ? d.per_booth.map(function(b){return '<tr><td>'+esc(b.booth_name)+'</td><td class="ty">'+b.points+'</td></tr>';}).join('') + '<tr><td><strong>Total</strong></td><td><strong class="ty">'+d.total+'</strong></td></tr>' : '<tr><td colspan="2"><div class="empty"><p>No booth plays yet</p></div></td></tr>') +
+      '</tbody></table></div></div>';
+  } catch(e) {}
+}
+
+// ══════════════════════════════
+//  ADMIN
+// ══════════════════════════════
+async function onAdminTab(i) {
+  if(i===0) await loadAdminDeploy();
+  else if(i===1) await loadDisbursement();
+  else if(i===2) await loadAllTxns();
+  else if(i===3) await loadAccounts();
+  else if(i===4) await loadBoothPts();
+  else if(i===5) await loadRegBooth();
+  else if(i===6) await loadAnnPanel();
+  else if(i===7) loadFAQs(true);
+  else if(i===8) loadCredits(true);
+  else if(i===9) await loadAuditLog();
+}
+
+// Attach tab handlers for admin
+document.addEventListener('click', function(e) {
+  if (SES && SES.role === 'admin') {
+    var btn = e.target.closest('.tab');
+    if (btn) {
+      var tid = btn.getAttribute('data-tab');
+      if (tid && tid.startsWith('admin')) {
+        var i = parseInt(tid.replace('admin',''));
+        onAdminTab(i);
+      }
+    }
+  }
+});
+
+var adTk = 10;
+async function loadAdminDeploy() {
+  var pan = document.getElementById('admin0');
+  if (!pan) return;
+  pan.innerHTML = '<div class="stitle"><span class="sicon">🎟</span>Deploy Tickets</div><div class="card"><div class="fg"><label>Section</label><select class="inp" id="ad-sec" onchange="loadAdLearners()"><option value="">All Sections</option></select></div><div class="fg"><label>Learner</label><select class="inp" id="ad-ln"><option value="">Select learner...</option></select></div><div class="fg"><label>Tickets</label><div class="trow"><button class="tcnt" onclick="adjAdTk(-10)">−10</button><button class="tcnt" onclick="adjAdTk(-1)">−</button><div class="tnum" id="ad-tk">10</div><button class="tcnt" onclick="adjAdTk(1)">+</button><button class="tcnt" onclick="adjAdTk(10)">+10</button></div></div><button class="btn btn-y mt12" onclick="confDeploy()">Deploy Tickets →</button></div>';
+  try {
+    var secs = await api('getSectionList', {}, true);
+    var sel = document.getElementById('ad-sec');
+    if (sel) secs.forEach(function(s){ var o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o); });
+    await loadAdLearners();
+  } catch(e) {}
+}
+function adjAdTk(d) { adTk = Math.max(1,adTk+d); var el=document.getElementById('ad-tk');if(el)el.textContent=adTk; }
+async function loadAdLearners() {
+  var sec = document.getElementById('ad-sec') ? document.getElementById('ad-sec').value : '';
+  try {
+    var st = await api('getLearnerList', { section: sec }, true);
+    var sel = document.getElementById('ad-ln');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select learner...</option>' + st.map(function(s){return '<option value="'+esc(s.account_id)+'">'+esc(s.full_name)+' — '+esc(s.grade_section)+' ('+s.ticket_balance+' tickets)</option>';}).join('');
+  } catch(e) {}
+}
+async function confDeploy() {
+  var el = document.getElementById('ad-ln');
+  var toId = el ? el.value : '';
+  var name = el && el.selectedOptions[0] ? el.selectedOptions[0].text : '';
+  if (!toId) { toast('Select a learner first','warn'); return; }
+  var ok = await confirm2('Deploy Tickets', 'Deploy '+adTk+' ticket'+(adTk>1?'s':'')+' to '+name+'?');
+  if (!ok) return;
+  try {
+    var r = await api('deployTickets', { toAccountId: toId, tickets: adTk });
+    toast('✅ '+r.message);
+    await loadAdLearners();
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function loadDisbursement() {
+  var pan = document.getElementById('admin1');
+  if (!pan) return;
+  try {
+    var d = await api('getDisbursement');
+    var gt = d.grand_total || 0;
+    pan.innerHTML = '<div class="stitle"><span class="sicon">💰</span>Disbursement</div>' +
+      '<div class="dcgrid">'+ [1,2,3,4].map(function(n){return '<div class="dc"><div class="dc-lbl">Day '+n+' · Sep '+(2+n)+'</div><div class="dc-val">'+(d['day'+n]?d['day'+n].total_tickets:0)+'</div><div class="dc-sub">'+(d['day'+n]?d['day'+n].transactions.length:0)+' transactions</div></div>';}).join('') +
+      '<div class="dc" style="border-color:rgba(255,224,0,.25)"><div class="dc-lbl">Grand Total</div><div class="dc-val" style="font-size:1.8rem">'+gt+'</div></div></div>' +
+      '<div class="dtabs">'+ ['Day 1','Day 2','Day 3','Day 4','All'].map(function(l,i){return '<div class="dtab'+(i===0?' on':'')+'" onclick="showDisbDay(this,'+(i===4?'\'all\'':i+1)+',data'+i+')">'+l+'</div>';}).join('') + '</div>' +
+      '<div id="disb-rows"></div>';
+    window._disbData = d;
+    showDisbDay(document.querySelector('.dtab.on'), 1, d);
+  } catch(e) { toast(e.message,'err'); }
+}
+function showDisbDay(btn, day, unused) {
+  document.querySelectorAll('.dtab').forEach(function(b){b.classList.remove('on');});
+  if (btn) btn.classList.add('on');
+  var d = window._disbData;
+  var txns = day === 'all' ? [1,2,3,4].reduce(function(a,n){return a.concat(d['day'+n]?d['day'+n].transactions:[]);}, []) : (d['day'+day]?d['day'+day].transactions:[]);
+  var el = document.getElementById('disb-rows');
+  if (!el) return;
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Recipient</th><th>Tickets</th><th>Day</th><th>Time</th></tr></thead><tbody>' +
+    (txns.length ? txns.map(function(t){return '<tr><td class="muted">'+String(t.txn_id).slice(-8)+'</td><td>'+esc(t.to_account_id)+'</td><td class="ty">'+t.tickets+'</td><td>'+t.day+'</td><td>'+fmtT(t.timestamp)+'</td></tr>';}).join('') : '<tr><td colspan="5"><div class="empty"><p>No transactions</p></div></td></tr>') +
+    '</tbody></table></div><div style="margin-top:9px"><button class="btn btn-ghost btn-sm" onclick="doExport(\''+day+'\')">⬇ Export CSV</button></div>';
+}
+
+var _txnCache = [];
+async function loadAllTxns() {
+  var pan = document.getElementById('admin2');
+  if (!pan) return;
+  pan.innerHTML = '<div class="stitle"><span class="sicon">📊</span>All Transactions</div><div class="frow"><select class="inp" id="txn-type" onchange="filterTxns()"><option value="">All Types</option><option value="play_booth">Play Booth</option><option value="send_student">Send Student</option><option value="deploy">Deploy</option><option value="refund">Refund</option></select><select class="inp" id="txn-day" onchange="filterTxns()"><option value="">All Days</option><option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option><option value="4">Day 4</option></select></div><div id="txn-rows"></div>';
+  try {
+    _txnCache = await api('getAllTransactions', {});
+    renderTxns(_txnCache);
+  } catch(e) { toast(e.message,'err'); }
+}
+function filterTxns() {
+  var type = document.getElementById('txn-type') ? document.getElementById('txn-type').value : '';
+  var day  = document.getElementById('txn-day')  ? document.getElementById('txn-day').value  : '';
+  var t = _txnCache.filter(function(x){ return (!type||x.txn_type===type) && (!day||String(x.day)===day); });
+  renderTxns(t);
+}
+function renderTxns(txns) {
+  var el = document.getElementById('txn-rows');
+  if (!el) return;
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Type</th><th>From</th><th>To</th><th>Tickets</th><th>Day</th><th>Time</th><th>Action</th></tr></thead><tbody>' +
+    (txns.length ? txns.map(function(t){
+      var ref = t.refunded===true||t.refunded==='TRUE';
+      var tc = {play_booth:'play',send_student:'send',deploy:'deploy',refund:'refund'}[t.txn_type]||'deploy';
+      return '<tr class="'+(ref?'refunded-row':'')+'"><td class="muted">'+String(t.txn_id).slice(-8)+'</td><td><span class="typebadge type-'+tc+'">'+t.txn_type+'</span></td><td class="muted">'+String(t.from_account_id).slice(-8)+'</td><td class="muted">'+String(t.to_account_id).slice(-8)+'</td><td class="ty">'+t.tickets+'</td><td>'+t.day+'</td><td>'+fmtT(t.timestamp)+'</td><td>'+(ref?'<span class="muted">refunded</span>':'<button class="btn btn-danger btn-sm" onclick="doRefund(\''+esc(t.txn_id)+'\')">Refund</button>')+'</td></tr>';
+    }).join('') : '<tr><td colspan="8"><div class="empty"><p>No transactions</p></div></td></tr>') +
+    '</tbody></table></div>';
+}
+async function doRefund(txnId) {
+  var ok = await confirm2('Refund Transaction', 'Reverse this ticket transfer and notify both parties?', 'Refund');
+  if (!ok) return;
+  try {
+    var r = await api('refundTransaction', { txnId: txnId });
+    toast('↩ '+r.message);
+    _txnCache = await api('getAllTransactions', {}, true);
+    renderTxns(_txnCache);
+  } catch(e) { toast(e.message,'err'); }
+}
+
+var _accsCache = [];
+async function loadAccounts() {
+  var pan = document.getElementById('admin3');
+  if (!pan) return;
+  pan.innerHTML = '<div class="stitle"><span class="sicon">👤</span>Create Account</div><div class="card mb14"><div class="g2col"><div class="fg"><label>Full Name</label><input class="inp" id="ca-name" placeholder="Juan Dela Cruz"></div><div class="fg"><label>Username</label><input class="inp" id="ca-user" placeholder="jdelacruz"></div><div class="fg"><label>Role</label><select class="inp" id="ca-role"><option value="learner">Learner</option><option value="teacher">Teacher</option><option value="admin">Admin</option></select></div><div class="fg"><label>Grade & Section</label><input class="inp" id="ca-sec" placeholder="Grade 9 - Rizal"></div></div><div class="muted" style="margin:6px 0 14px">Default password: <strong class="ty">Change@123</strong></div><button class="btn btn-y" onclick="doCreateAcc()">Create Account →</button></div>' +
+    '<div class="stitle"><span class="sicon">👥</span>All Accounts</div><div class="sbar"><input class="inp" id="acc-q" placeholder="Search name or username..." oninput="filterAccs()"></div><div id="accs-list"></div>';
+  try { _accsCache = await api('getAllAccounts', {}, true); renderAccs(_accsCache); } catch(e) {}
+}
+function filterAccs() {
+  var q = (document.getElementById('acc-q')||{}).value||'';
+  q = q.toLowerCase();
+  renderAccs(_accsCache.filter(function(a){ return a.full_name.toLowerCase().includes(q)||a.username.toLowerCase().includes(q); }));
+}
+function renderAccs(accs) {
+  var el = document.getElementById('accs-list');
+  if (!el || !accs) return;
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Section</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+    accs.map(function(a){
+      var active = a.is_active===true||a.is_active==='TRUE';
+      var aid = esc(a.account_id);
+      var aname = esc(a.full_name||'');
+      return '<tr>' +
+        '<td>'+esc(a.full_name)+'</td>' +
+        '<td class="muted">'+esc(a.username)+'</td>' +
+        '<td><span class="rbadge rb-'+esc(a.role)+'">'+esc(a.role)+'</span></td>' +
+        '<td class="muted">'+esc(a.grade_section||'—')+'</td>' +
+        '<td class="ty">'+a.ticket_balance+'</td>' +
+        '<td class="'+(active?'tg':'tr')+'">'+(active?'Active':'Suspended')+'</td>' +
+        '<td><div style="display:flex;gap:5px;flex-wrap:wrap">' +
+          '<button class="btn btn-ghost btn-sm" onclick="adminChangePw(\''+aid+'\',\''+aname+'\')">🔑 Pw</button>' +
+          (active
+            ? '<button class="btn btn-danger btn-sm" onclick="adminSuspend(\''+aid+'\',\''+aname+'\')">⏸ Suspend</button>'
+            : '<button class="btn btn-g btn-sm" onclick="adminActivate(\''+aid+'\',\''+aname+'\')">▶ Activate</button>') +
+          '<button class="btn btn-danger btn-sm" onclick="adminDelete(\''+aid+'\',\''+aname+'\')">🗑 Delete</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+async function adminChangePw(accountId, name) {
+  var newPw = prompt('New password for ' + name + ' (min 6 chars):');
+  if (newPw === null) return;
+  if (!newPw || newPw.length < 6) { toast('Min 6 characters','warn'); return; }
+  var ok = await confirm2('Change Password', 'Reset password for ' + name + '?');
+  if (!ok) return;
+  try { var r = await api('adminChangePw',{targetId:accountId,newPassword:newPw}); toast('🔑 '+r.message); }
+  catch(e) { toast(e.message,'err'); }
+}
+async function adminSuspend(accountId, name) {
+  var reason = prompt('Reason for suspending ' + name + ':');
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Enter a reason','warn'); return; }
+  var ok = await confirm2('Suspend Account','Suspend '+name+'? Reason: '+reason,'Suspend');
+  if (!ok) return;
+  try { var r = await api('setAccountStatus',{targetId:accountId,is_active:false,reason:reason}); toast('⏸ '+r.message); _accsCache = await api('getAllAccounts',{},true); renderAccs(_accsCache); }
+  catch(e) { toast(e.message,'err'); }
+}
+async function adminActivate(accountId, name) {
+  var ok = await confirm2('Activate Account','Reactivate '+name+'?');
+  if (!ok) return;
+  try { var r = await api('setAccountStatus',{targetId:accountId,is_active:true,reason:''}); toast('▶ '+r.message); _accsCache = await api('getAllAccounts',{},true); renderAccs(_accsCache); }
+  catch(e) { toast(e.message,'err'); }
+}
+async function adminDelete(accountId, name) {
+  var reason = prompt('Reason for DELETING '+name+' (cannot be undone):');
+  if (reason === null) return;
+  if (!reason.trim()) { toast('Enter a reason','warn'); return; }
+  var ok = await confirm2('Delete Account','Permanently delete '+name+'? Reason: '+reason,'Delete');
+  if (!ok) return;
+  try { var r = await api('deleteAccount',{targetId:accountId,reason:reason}); toast('🗑 '+r.message); _accsCache = await api('getAllAccounts',{},true); renderAccs(_accsCache); }
+  catch(e) { toast(e.message,'err'); }
+}
+async function doCreateAcc() {
+  var data = { full_name: (document.getElementById('ca-name')||{}).value||'', username: (document.getElementById('ca-user')||{}).value||'', role: (document.getElementById('ca-role')||{}).value||'learner', grade_section: (document.getElementById('ca-sec')||{}).value||'' };
+  if (!data.full_name||!data.username) { toast('Name and username required','warn'); return; }
+  try {
+    var r = await api('createAccount', { data: data });
+    toast('✅ '+r.message);
+    ['ca-name','ca-user','ca-sec'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    _accsCache = await api('getAllAccounts', {}, true);
+    renderAccs(_accsCache);
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function loadBoothPts() {
+  var pan = document.getElementById('admin4');
+  if (!pan) return;
+  try {
+    var bs = await api('getAllBoothPoints');
+    pan.innerHTML = '<div class="stitle"><span class="sicon">🏆</span>Booth Points</div><div class="bpgrid">'+
+      bs.map(function(b){ return '<div class="bpcrd"><div class="bpname">'+esc(b.booth_name)+'</div><div class="bpalias">Alias: '+(b.alias||'<em style="opacity:.4">not set</em>')+'</div><div class="bpdays">'+[1,2,3,4].map(function(d){return '<div class="bpday"><span>D'+d+'</span><strong>'+(b['day'+d]||0)+'</strong></div>';}).join('')+'</div><div class="bptot"><div><span class="muted" style="font-size:.7rem">Total</span><div class="bptotnum">'+(b.total||0)+'</div></div><div class="muted" style="font-size:.72rem">'+(b.rank_released===true||b.rank_released==='TRUE'?'Rank #'+b.rank:'Rank hidden')+'</div></div><div class="bpacts">'+(!(b.points_released===true||b.points_released==='TRUE')?'<button class="btn btn-g btn-sm" onclick="doRelPts(\''+esc(b.booth_id)+'\')">Release Points</button>':'<span class="tg" style="font-size:.78rem">✓ Released</span>')+'<button class="btn btn-ghost btn-sm" onclick="doSetRank(\''+esc(b.booth_id)+'\',\''+esc(b.booth_name)+'\')">Set Rank</button><button class="btn btn-ghost btn-sm" onclick="doSetAlias(\''+esc(b.booth_id)+'\',\''+esc(b.booth_name)+'\')">Set Alias</button></div></div>'; }).join('') + '</div>';
+  } catch(e) { toast(e.message,'err'); }
+}
+async function doRelPts(boothId){ var ok=await confirm2('Release Points','Booth will see their points. Cannot be undone.');if(!ok)return;try{var r=await api('releaseBoothPoints',{boothId:boothId});toast(r.message);loadBoothPts();}catch(e){toast(e.message,'err');} }
+async function doSetRank(boothId,name){ var rank=prompt('Enter rank # for "'+name+'":');if(!rank||isNaN(parseInt(rank)))return;var ok=await confirm2('Set Rank','Set rank #'+rank+' for "'+name+'" and reveal it?');if(!ok)return;try{var r=await api('releaseRanking',{boothId:boothId,rank:parseInt(rank)});toast(r.message);loadBoothPts();}catch(e){toast(e.message,'err');} }
+async function doSetAlias(boothId,name){ var alias=prompt('Set anonymous alias for "'+name+'" (shown on leaderboard):');if(!alias)return;try{var r=await api('setBoothAlias',{boothId:boothId,alias:alias});toast(r.message);loadBoothPts();}catch(e){toast(e.message,'err');} }
+
+async function loadRegBooth() {
+  var pan = document.getElementById('admin5');
+  if (!pan) return;
+  pan.innerHTML = '<div class="stitle"><span class="sicon">🔬</span>Register Booth</div><div class="card"><div class="g2col"><div class="fg"><label>Booth Name</label><input class="inp" id="rb-name" placeholder="e.g. The Science of Sound"></div><div class="fg"><label>Username</label><input class="inp" id="rb-user" placeholder="e.g. booth_sound"></div><div class="fg"><label>Password</label><input class="inp" type="password" id="rb-pass" placeholder="Set password"></div><div class="fg"><label>Alias (leaderboard)</label><input class="inp" id="rb-alias" placeholder="e.g. Team Alpha"></div></div><button class="btn btn-y mt12" onclick="doRegBooth()">Register Booth →</button></div>';
+}
+async function doRegBooth() {
+  var data={booth_name:(document.getElementById('rb-name')||{}).value||'',username:(document.getElementById('rb-user')||{}).value||'',password:(document.getElementById('rb-pass')||{}).value||'',alias:(document.getElementById('rb-alias')||{}).value||''};
+  if(!data.booth_name||!data.username||!data.password){toast('All fields except alias required','warn');return;}
+  try{var r=await api('registerBooth',{data:data});toast('🔬 '+r.message);['rb-name','rb-user','rb-pass','rb-alias'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});}catch(e){toast(e.message,'err');}
+}
+
+async function loadAnnPanel() {
+  var pan = document.getElementById('admin6');
+  if (!pan) return;
+  pan.innerHTML = '<div class="stitle"><span class="sicon">📢</span>Announcements</div><div class="card"><div class="fg"><label>Message</label><textarea class="inp" id="ann-msg" rows="3" placeholder="Type announcement..."></textarea></div><div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn btn-y" onclick="postAnn()">📢 Broadcast</button><button class="btn btn-danger" onclick="clearAnn()">✕ Clear</button></div></div>';
+}
+async function postAnn(){ var msg=(document.getElementById('ann-msg')||{}).value||'';if(!msg){toast('Enter a message','warn');return;}try{var r=await api('postAnnouncement',{message:msg});toast('📢 '+r.message);}catch(e){toast(e.message,'err');} }
+async function clearAnn(){ try{var r=await api('clearAnnouncement',{});toast(r.message);document.getElementById('ann').classList.remove('on');}catch(e){toast(e.message,'err');} }
+
+async function loadAuditLog() {
+  var pan = document.getElementById('admin9');
+  if (!pan) return;
+  try {
+    var logs = await api('getAuditLog', {});
+    pan.innerHTML = '<div class="stitle"><span class="sicon">🔍</span>Audit Trail</div><div class="tbl-wrap"><table><thead><tr><th>Admin</th><th>Action</th><th>Details</th><th>Time</th></tr></thead><tbody>'+
+      (logs.length?logs.map(function(l){return '<tr><td class="ty"><strong>'+esc(l.admin_name)+'</strong></td><td><span class="typebadge type-deploy">'+esc(l.action)+'</span></td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(l.details)+'</td><td>'+fmtT(l.timestamp)+'</td></tr>';}).join(''):'<tr><td colspan="4"><div class="empty"><p>No audit entries</p></div></td></tr>')+
+      '</tbody></table></div>';
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function doExport(day) {
+  try {
+    var r = await api('exportTransactions', { day: day });
+    var blob = new Blob([r.csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'transactions_day' + day + '_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    toast('⬇ Exported ' + r.count + ' transactions.');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// ══════════════════════════════
+//  TEACHER
+// ══════════════════════════════
+async function loadTeacherPanel() {
+  var pan = document.getElementById('teacher0');
+  if (!pan) return;
+  pan.innerHTML = '<div class="greet"><h2>Welcome, <span>'+esc(SES.full_name.split(' ')[0])+'</span>!</h2><p>View student ticket points by section</p></div><div class="stitle"><span class="sicon">📚</span>Select Section</div><div class="fg" style="max-width:300px"><select class="inp" id="t-sec" onchange="loadTSection()"><option value="">Choose section...</option></select></div><div id="t-students"></div>';
+  try {
+    var secs = await api('getSectionList', {}, true);
+    var sel = document.getElementById('t-sec');
+    if (sel) secs.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+  } catch(e) {}
+}
+async function loadTSection() {
+  var sec = document.getElementById('t-sec') ? document.getElementById('t-sec').value : '';
+  if (!sec) return;
+  var el = document.getElementById('t-students');
+  if (el) el.innerHTML = '<div class="empty"><p>Loading...</p></div>';
+  try {
+    var st = await api('getLearnersBySection', { section: sec });
+    st.sort(function(a,b){return b.total_points-a.total_points;});
+    el.innerHTML = '<div class="stitle mt16"><span class="sicon">🏅</span>'+esc(sec)+'</div><div class="tbl-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Total Points</th><th></th></tr></thead><tbody>'+
+      st.map(function(s,i){return '<tr><td class="muted">'+(i+1)+'</td><td><strong style="color:#fff">'+esc(s.full_name)+'</strong></td><td class="ty">'+s.total_points+'</td><td><button class="btn btn-ghost btn-sm" onclick="viewStudentBP(\''+esc(s.account_id)+'\',\''+esc(s.full_name)+'\')">Details</button></td></tr>';}).join('')+
+      '</tbody></table></div>';
+  } catch(e) { toast(e.message,'err'); }
+}
+async function viewStudentBP(accountId, name) {
+  try {
+    var d = await api('getLearnerBoothBreakdown', { accountId: accountId });
+    var msg = d.per_booth.length ? d.per_booth.map(function(b){return b.booth_name+': '+b.points+' tickets';}).join('\n')+'\n\nTotal: '+d.total : 'No booth plays yet.';
+    alert(name + '\n\n' + msg);
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// ══════════════════════════════
+//  BOOTH
+// ══════════════════════════════
+function getFairDay(){var n=new Date(),m=n.getMonth()+1,d=n.getDate();if(m===9&&d===3)return 1;if(m===9&&d===4)return 2;if(m===9&&d===5)return 3;if(m===9&&d===6)return 4;return 1;}
+async function loadBoothDash() {
+  var pan = document.getElementById('booth0');
+  if (!pan) return;
+  pan.innerHTML = '<div class="greet"><h2>Booth: <span>'+esc(SES.full_name)+'</span></h2><p>Science Fair Sep 3–6 · Notifications auto-refresh every 5 seconds</p></div>' +
+    '<div class="concard"><div class="daybadge">Day '+getFairDay()+'</div><h3>Operations</h3><p>Click when done for the day.</p><button class="btn btn-y" onclick="doConc()">✓ Conclude for Today</button></div>' +
+    '<div id="booth-pts"></div>';
+  await loadBoothPtsPanel();
+  await loadLeaderboardPanel();
+}
+async function doConc(){var day=getFairDay();var ok=await confirm2('Conclude Day '+day,'Mark your booth as done for today?');if(!ok)return;try{var r=await api('concludeDay',{day:day});toast('✅ '+r.message);}catch(e){toast(e.message,'err');}}
+async function loadBoothPtsPanel() {
+  try {
+    var d = await api('getBoothPoints', {}, true);
+    var el = document.getElementById('booth-pts');
+    if (!el) return;
+    el.innerHTML = '<div class="stitle mt16"><span class="sicon">📊</span>Your Points</div>' +
+      (d.points_released===true||d.points_released==='TRUE' ?
+        '<div class="dcgrid">'+[1,2,3,4].map(function(n){return '<div class="dc"><div class="dc-lbl">Day '+n+'</div><div class="dc-val">'+(d['day'+n]||0)+'</div></div>';}).join('') +
+        '<div class="dc" style="border-color:rgba(255,224,0,.25)"><div class="dc-lbl">Total</div><div class="dc-val" style="font-size:1.8rem">'+(d.total||0)+'</div>'+(d.rank_released===true||d.rank_released==='TRUE'?'<div class="dc-sub" style="color:var(--y);font-size:.9rem;font-weight:700">Rank #'+d.rank+'</div>':'')+'</div></div>' :
+        '<div class="card"><p class="muted" style="text-align:center;padding:18px">⏳ Points will be revealed when admin releases them.</p></div>');
+  } catch(e) {}
+}
+async function loadLeaderboardPanel() {
+  var pan = document.getElementById('booth1');
+  if (!pan) return;
+  try {
+    var boards = await api('getLeaderboard', {}, true);
+    pan.innerHTML = '<div class="stitle"><span class="sicon">🏆</span>Live Leaderboard</div><div class="lbList">' +
+      (boards.length ? boards.map(function(b,i){return '<div class="lbi r'+(i+1)+'"><div class="lbrank">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+'</div><div class="lbname">'+esc(b.alias)+'</div><div class="lbdays">'+[1,2,3,4].map(function(d){return '<div class="lbd"><span>D'+d+'</span><strong>'+(b['day'+d]||0)+'</strong></div>';}).join('')+'</div><div class="lbtot">'+(b.total||0)+'</div></div>';}).join('') : '<div class="empty"><div class="ei">🏆</div><p>Leaderboard not yet released</p></div>') +
+      '</div>';
+  } catch(e) {}
+}
+
+// ══════════════════════════════
+//  SHARED: FAQs & Credits
+// ══════════════════════════════
+async function loadFAQs(adminEdit) {
+  var ids = { learner:'learner4', admin:'admin7', teacher:'teacher1', booth:'booth2' };
+  var pan = document.getElementById(ids[SES.role]);
+  if (!pan) return;
+  try {
+    var faqs = await api('getFAQs', {}, true);
+    pan.innerHTML = '<div class="stitle"><span class="sicon">❓</span>FAQs</div>' +
+      (adminEdit ? '<div class="card mb14"><div class="fg"><label>Question</label><input class="inp" id="faq-q" placeholder="Enter question"></div><div class="fg"><label>Answer</label><textarea class="inp" id="faq-a" rows="3" placeholder="Enter answer"></textarea></div><button class="btn btn-y btn-sm" onclick="addFAQ()">+ Add FAQ</button></div>' : '') +
+      '<div class="faq-list">'+(faqs.length?faqs.map(function(f){return '<div class="faq-item" onclick="this.classList.toggle(\'on\')"><div class="faq-q">'+esc(f.question)+'<span class="faq-arr">▼</span></div><div class="faq-a">'+esc(f.answer)+(adminEdit?'<div style="margin-top:9px"><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delFAQ(\''+esc(f.faq_id)+'\')">Delete</button></div>':'')+'</div></div>';}).join(''):'<div class="empty"><div class="ei">❓</div><p>No FAQs yet</p></div>')+'</div>';
+  } catch(e) {}
+}
+async function addFAQ(){ var q=(document.getElementById('faq-q')||{}).value||'',a=(document.getElementById('faq-a')||{}).value||'';if(!q||!a){toast('Enter Q and A','warn');return;}try{await api('manageFAQ',{subaction:'add',data:{question:q,answer:a}});toast('FAQ added.');loadFAQs(true);}catch(e){toast(e.message,'err');} }
+async function delFAQ(id){var ok=await confirm2('Delete FAQ','Remove this FAQ?','Delete');if(!ok)return;try{await api('manageFAQ',{subaction:'delete',data:{faq_id:id}});toast('Removed.');loadFAQs(true);}catch(e){toast(e.message,'err');}}
+
+async function loadCredits(adminEdit) {
+  var ids = { learner:'learner5', admin:'admin8', teacher:'teacher2', booth:'booth3' };
+  var pan = document.getElementById(ids[SES.role]);
+  if (!pan) return;
+  try {
+    var grouped = await api('getCredits', {}, true);
+    var cats = Object.keys(grouped);
+    pan.innerHTML = '<div class="stitle"><span class="sicon">⭐</span>Credits</div>' +
+      (adminEdit ? '<div class="card mb14"><div class="g2col"><div class="fg"><label>Name</label><input class="inp" id="cr-n" placeholder="Full name"></div><div class="fg"><label>Role</label><input class="inp" id="cr-r" placeholder="e.g. Lead Developer"></div><div class="fg" style="grid-column:1/-1"><label>Category</label><input class="inp" id="cr-c" placeholder="e.g. Developers"></div></div><button class="btn btn-y btn-sm" onclick="addCredit()">+ Add</button></div>' : '') +
+      (cats.length ? cats.map(function(cat){return '<div class="cr-sec"><h3>'+esc(cat)+'</h3><div class="cr-grid">'+grouped[cat].map(function(c){return '<div class="cr-card"><div class="cr-name">'+esc(c.name)+'</div><div class="cr-role">'+esc(c.role_label)+'</div></div>';}).join('')+'</div></div>';}).join('') : '<div class="empty"><div class="ei">⭐</div><p>No credits yet</p></div>');
+  } catch(e) {}
+}
+async function addCredit(){ var n=(document.getElementById('cr-n')||{}).value||'',r=(document.getElementById('cr-r')||{}).value||'',c=(document.getElementById('cr-c')||{}).value||'';if(!n||!r||!c){toast('All fields required','warn');return;}try{await api('manageCredits',{subaction:'add',data:{name:n,role_label:r,category:c}});toast('Added.');loadCredits(true);}catch(e){toast(e.message,'err');} }
+
+
+document.addEventListener("DOMContentLoaded", function() {
+// ══════════════════════════════
+//  AUTO-LOGIN
+// ══════════════════════════════
+(async function() {
+  var saved = localStorage.getItem('sf_ses');
+  if (!saved) return;
+  try {
+    SES = JSON.parse(saved);
+    var valid = await api('validateSession', {}, true);
+    if (valid) { SES = Object.assign({}, SES, valid); enterApp(); }
+    else { localStorage.removeItem('sf_ses'); SES = null; }
+  } catch(e) { localStorage.removeItem('sf_ses'); SES = null; }
+})();
+
+});
+</script>
+</body>
+</html>
